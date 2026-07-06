@@ -1,4 +1,6 @@
 import os
+import requests
+from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -9,10 +11,10 @@ if not TOKEN:
 
 print("Bot starting...")
 
-async def start(update, context):
+async def start(update: Update, context):
     await update.message.reply_text("Bot is working! Send me a number.")
 
-async def handle(update, context):
+async def handle(update: Update, context):
     try:
         usd = float(update.message.text)
         btc = usd / 50000
