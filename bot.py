@@ -22,8 +22,12 @@ async def handle(update: Update, context):
     except:
         await update.message.reply_text("Send a number please")
 
-app = Application.builder().token(TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
-print("Bot is running...")
-app.run_polling()
+def main():
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+    print("Bot is running...")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
