@@ -1,7 +1,7 @@
 import os
-import requests
+import asyncio
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
@@ -11,21 +11,18 @@ if not TOKEN:
 
 print("Bot starting...")
 
-def start(update, context):
-    update.message.reply_text("Bot is working! Send me a number.")
+async def start(update: Update, context):
+    await update.message.reply_text("Send me a number")
 
-def handle(update, context):
+async def handle(update: Update, context):
     try:
-        usd = float(update.message.text)
-        btc = usd / 50000
-        update.message.reply_text("BTC: " + str(round(btc, 8)))
+        num = float(update.message.text)
+        await update.message.reply_text("You sent: " + str(num))
     except:
-        update.message.reply_text("Send a number please")
+        await update.message.reply_text("Send a number")
 
-updater = Updater(TOKEN, use_context=True)
-dp = updater.dispatcher
-dp.add_handler(CommandHandler("start", start))
-dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle))
-print("Bot is running...")
-updater.start_polling()
-updater.idle()
+app = Application.builder().token(TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+print("Bot running...")
+app.run_polling()
