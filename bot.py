@@ -98,7 +98,8 @@ async def handle(update: Update, context):
         )
         
     except Exception as e:
-        await update.message.reply_text("❌ Please send a number like 500")
+        # Do NOTHING - ignore non-number messages
+        return
 
 async def button_callback(update: Update, context):
     query = update.callback_query
