@@ -37,7 +37,7 @@ async def handle(update: Update, context):
         price = get_btc()
         
         if price is None:
-            await update.message.reply_text("⚠️ Could not fetch BTC price. Please try again.")
+            await update.message.chat.send_message("⚠️ Could not fetch BTC price. Please try again.")
             return
             
         discount = price * 0.85
@@ -63,10 +63,10 @@ async def handle(update: Update, context):
             msg = msg + "📝 Math: " + clean_number(round(numerator, 2)) + " ÷ " + clean_number(round(denominator, 2)) + "\n\n"
             msg = msg + "Exact BTC to send:"
         
-        await update.message.reply_text(msg)
+        await update.message.chat.send_message(msg)
         
         btc_str = str(round(btc, 8)).rstrip('0').rstrip('.')
-        await update.message.reply_text(btc_str)
+        await update.message.chat.send_message(btc_str)
         
         user_id = update.effective_user.id
         user_selections[user_id] = {
@@ -92,7 +92,7 @@ async def handle(update: Update, context):
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await update.message.reply_text(
+        await update.message.chat.send_message(
             "Select your payment method(s):\n(Tap to select/unselect, then press OK)",
             reply_markup=reply_markup
         )
