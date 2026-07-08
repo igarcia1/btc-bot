@@ -28,6 +28,30 @@ def clean_number(num):
         s = s.rstrip('0').rstrip('.')
     return s
 
+def format_currency_whole(num):
+    """Format number with commas, no decimals (for prices)"""
+    try:
+        if num is None:
+            return "0"
+        rounded = round(num)
+        formatted = f"{rounded:,}"
+        return formatted
+    except:
+        return str(num)
+
+def format_currency_decimal(num):
+    """Format number with commas and decimals (for request amounts)"""
+    try:
+        if num is None:
+            return "0"
+        # Show up to 2 decimal places, remove trailing zeros
+        formatted = f"{num:,.2f}"
+        if formatted.endswith('.00'):
+            formatted = formatted[:-3]
+        return formatted
+    except:
+        return str(num)
+
 async def start(update: Update, context):
     await update.message.reply_text("Send me a USD amount like 500")
 
@@ -47,20 +71,20 @@ async def handle(update: Update, context):
             denominator = price
             btc = numerator / denominator
             
-            msg = "📊 BTC SPOT PRICE: $" + clean_number(round(price, 2)) + " USD\n\n"
-            msg = msg + "💰 You want: $" + clean_number(round(usd, 2)) + " USD\n"
-            msg = msg + "📝 Math: (" + clean_number(round(usd, 2)) + " + 20) ÷ " + clean_number(round(denominator, 2)) + "\n"
-            msg = msg + "   = " + clean_number(round(numerator, 2)) + " ÷ " + clean_number(round(denominator, 2)) + "\n\n"
+            msg = "📊 BTC SPOT PRICE: $" + format_currency_whole(price) + "\n\n"
+            msg = msg + "💰 Request: $" + format_currency_decimal(usd) + "\n"
+            msg = msg + "📝 Math: (" + format_currency_decimal(usd) + " + 20) ÷ " + format_currency_whole(denominator) + "\n"
+            msg = msg + "   = " + format_currency_decimal(numerator) + " ÷ " + format_currency_whole(denominator) + "\n\n"
             msg = msg + "Exact BTC to send:"
         else:
             numerator = usd
             denominator = discount
             btc = numerator / denominator
             
-            msg = "📊 BTC SPOT PRICE: $" + clean_number(round(price, 2)) + " USD\n"
-            msg = msg + "🏷️ MY RATE (15% OFF): $" + clean_number(round(discount, 2)) + " USD\n\n"
-            msg = msg + "💰 You want: $" + clean_number(round(usd, 2)) + " USD\n"
-            msg = msg + "📝 Math: " + clean_number(round(numerator, 2)) + " ÷ " + clean_number(round(denominator, 2)) + "\n\n"
+            msg = "📊 BTC SPOT PRICE: $" + format_currency_whole(price) + "\n"
+            msg = msg + "🏷️ MY RATE (15% OFF): $" + format_currency_whole(discount) + "\n\n"
+            msg = msg + "💰 Request: $" + format_currency_decimal(usd) + "\n"
+            msg = msg + "📝 Math: " + format_currency_decimal(numerator) + " ÷ " + format_currency_whole(denominator) + "\n\n"
             msg = msg + "Exact BTC to send:"
         
         await update.message.chat.send_message(msg)
@@ -70,7 +94,7 @@ async def handle(update: Update, context):
         
         user_id = update.effective_user.id
         user_selections[user_id] = {
-            "usd": clean_number(round(usd, 2)),
+            "usd": format_currency_decimal(usd),
             "btc": btc_str,
             "methods": []
         }
