@@ -1,7 +1,7 @@
 import os
 import requests
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackQueryHandler
 
 TOKEN = os.environ.get("TELEGRAM_TOKEN")
 
@@ -40,7 +40,7 @@ async def handle(update: Update, context):
             
         discount = price * 0.85
         
-        if usd <= 113.33:
+        if usd <= 102:
             numerator = usd + 20
             denominator = price
             btc = numerator / denominator
@@ -66,11 +66,52 @@ async def handle(update: Update, context):
         btc_str = str(round(btc, 8)).rstrip('0').rstrip('.')
         await update.message.reply_text(btc_str)
         
+        # --- PAYMENT METHOD BUTTONS ---
+        keyboard = [
+            [
+                InlineKeyboardButton("💳 Zelle", callback_data="zelle"),
+                InlineKeyboardButton("💵 Cash App", callback_data="cashapp")
+            ],
+            [
+                InlineKeyboardButton("📱 Apple Pay", callback_data="applepay"),
+                InlineKeyboardButton("💳 Card", callback_data="card")
+            ],
+            [
+                InlineKeyboardButton("🔄 Other", callback_data="other")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(
+            "Select your payment method:",
+            reply_markup=reply_markup
+        )
+        
     except Exception as e:
         await update.message.reply_text("❌ Please send a number like 500")
+
+async def button_callback(update: Update, context):
+    query = update.callback_query
+    await query.answer()
+    
+    payment_method = query.data
+    
+    payment_names = {
+        "zelle": "Zelle",
+        "cashapp": "Cash App",
+        "applepay": "Apple Pay",
+        "card": "Card Payment",
+        "other": "Other"
+    }
+    
+    await query.edit_message_text(
+        "✅ Payment method selected: " + payment_names.get(payment_method, payment_method) + "\n\n"
+        "Please send the BTC to the address provided.\n"
+        "I will confirm once received."
+    )
 
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle))
+app.add_handler(CallbackQueryHandler(button_callback))
 print("Bot is running...")
 app.run_polling()
