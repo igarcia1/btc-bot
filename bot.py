@@ -11,6 +11,8 @@ if not TOKEN:
 
 print("Bot starting...")
 
+user_selections = {}
+
 def get_btc():
     try:
         r = requests.get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd", timeout=10)
@@ -66,23 +68,32 @@ async def handle(update: Update, context):
         btc_str = str(round(btc, 8)).rstrip('0').rstrip('.')
         await update.message.reply_text(btc_str)
         
-        # --- PAYMENT METHOD BUTTONS ---
+        user_id = update.effective_user.id
+        user_selections[user_id] = {
+            "usd": clean_number(round(usd, 2)),
+            "btc": btc_str,
+            "methods": []
+        }
+        
         keyboard = [
             [
-                InlineKeyboardButton("💳 Zelle", callback_data="zelle"),
-                InlineKeyboardButton("💵 Cash App", callback_data="cashapp")
+                InlineKeyboardButton("💳 Zelle", callback_data="toggle_zelle"),
+                InlineKeyboardButton("💵 Cash App", callback_data="toggle_cashapp")
             ],
             [
-                InlineKeyboardButton("📱 Apple Pay", callback_data="applepay"),
-                InlineKeyboardButton("💳 Card", callback_data="card")
+                InlineKeyboardButton("📱 Apple Pay", callback_data="toggle_applepay"),
+                InlineKeyboardButton("💳 Card", callback_data="toggle_card")
             ],
             [
-                InlineKeyboardButton("🔄 Other", callback_data="other")
+                InlineKeyboardButton("🔄 Other", callback_data="toggle_other")
+            ],
+            [
+                InlineKeyboardButton("✅ OK - Confirm", callback_data="confirm")
             ]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         await update.message.reply_text(
-            "Select your payment method:",
+            "Select your payment method(s):\n(Tap to select/unselect, then press OK)",
             reply_markup=reply_markup
         )
         
@@ -93,21 +104,79 @@ async def button_callback(update: Update, context):
     query = update.callback_query
     await query.answer()
     
-    payment_method = query.data
+    user_id = update.effective_user.id
+    data = query.data
     
-    payment_names = {
-        "zelle": "Zelle",
-        "cashapp": "Cash App",
-        "applepay": "Apple Pay",
-        "card": "Card Payment",
-        "other": "Other"
-    }
+    if data.startswith("toggle_"):
+        method = data.replace("toggle_", "")
+        
+        if user_id not in user_selections:
+            user_selections[user_id] = {"methods": []}
+        
+        if method in user_selections[user_id]["methods"]:
+            user_selections[user_id]["methods"].remove(method)
+        else:
+            user_selections[user_id]["methods"].append(method)
+        
+        keyboard = [
+            [
+                InlineKeyboardButton(
+                    "✅ Zelle" if "zelle" in user_selections[user_id]["methods"] else "💳 Zelle",
+                    callback_data="toggle_zelle"
+                ),
+                InlineKeyboardButton(
+                    "✅ Cash App" if "cashapp" in user_selections[user_id]["methods"] else "💵 Cash App",
+                    callback_data="toggle_cashapp"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "✅ Apple Pay" if "applepay" in user_selections[user_id]["methods"] else "📱 Apple Pay",
+                    callback_data="toggle_applepay"
+                ),
+                InlineKeyboardButton(
+                    "✅ Card" if "card" in user_selections[user_id]["methods"] else "💳 Card",
+                    callback_data="toggle_card"
+                )
+            ],
+            [
+                InlineKeyboardButton(
+                    "✅ Other" if "other" in user_selections[user_id]["methods"] else "🔄 Other",
+                    callback_data="toggle_other"
+                )
+            ],
+            [
+                InlineKeyboardButton("✅ OK - Confirm", callback_data="confirm")
+            ]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(
+            "Select your payment method(s):\n(Tap to select/unselect, then press OK)",
+            reply_markup=reply_markup
+        )
     
-    await query.edit_message_text(
-        "✅ Payment method selected: " + payment_names.get(payment_method, payment_method) + "\n\n"
-        "Please send the BTC to the address provided.\n"
-        "I will confirm once received."
-    )
+    elif data == "confirm":
+        if user_id not in user_selections or not user_selections[user_id].get("methods"):
+            await query.edit_message_text("⚠️ Please select at least one payment method first.")
+            return
+        
+        selected = user_selections[user_id]
+        methods = selected.get("methods", [])
+        method_names = {
+            "zelle": "Zelle",
+            "cashapp": "Cash App",
+            "applepay": "Apple Pay",
+            "card": "Card Payment",
+            "other": "Other"
+        }
+        methods_list = ", ".join([method_names.get(m, m) for m in methods])
+        
+        summary = "$" + selected.get("usd", "0") + " " + methods_list + " for ₿" + selected.get("btc", "0") + "\n\n"
+        summary += "Address and transfer ETA coming."
+        
+        user_selections[user_id] = {"methods": []}
+        
+        await query.edit_message_text(summary)
 
 app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
