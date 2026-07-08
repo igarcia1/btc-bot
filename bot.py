@@ -40,7 +40,7 @@ async def handle(update: Update, context):
             
         discount = price * 0.85
         
-        if usd <= 102:
+        if usd <= 113.33:
             numerator = usd + 20
             denominator = price
             btc = numerator / denominator
